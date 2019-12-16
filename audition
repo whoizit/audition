@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+
+import sys
+import pysubparser
+import spacy
+
+subs = pysubparser.parse(sys.argv[1])
+
+sub_words = list()
+uniq_sub_words = set()
+known_words = set(open('known').read().split())
+blacklist_words = set(open('blacklist').read().split())
+
+for sub in subs:
+    sub_words += sub.clean_up(to_lowercase=True, remove_brackets=True, remove_formatting=True).split()
+
+nlp = spacy.load("en_core_web_sm")
+
+tokens = nlp(' '.join(str(x) for x in sub_words))
+
+for token in tokens:
+    t = token.lemma_
+    if not t[0].isdigit() and len(t) > 2:
+        uniq_sub_words.add(t)
+
+for word in known_words.union(blacklist_words):
+    if word in uniq_sub_words:
+        uniq_sub_words.remove(word)
+
+with open('unknown', 'w') as f:
+    f.write('\n'.join(uniq_sub_words))
